@@ -129,18 +129,15 @@ def plot_loss(train_loss, val_loss, accuracy):
 
 # Define function to save checkpoint
 def save_checkpoint(model, path):
-    checkpoint = {'input': model.n_in,
-                  'hidden': model.n_hidden,
+    checkpoint = {'hidden': model.n_hidden,
                   'out': model.n_out,
                   'labelsdict': model.labelsdict,
-                  'lr': model.lr,
                   'state_dict': model.state_dict(),
                   'opti_state_dict': model.optimizer_state_dict,
-                  'class_to_idx': model.class_to_idx
                   }
     torch.save(checkpoint, path)
 
-def train(train_loader,test_loader,val_loader,model, optimizer,epochs=10):
+def train(train_loader,val_loader,model, optimizer,labeldict,epochs=10):
     criterion = torch.nn.NLLLoss()
 
     steps=0
@@ -184,9 +181,12 @@ def train(train_loader,test_loader,val_loader,model, optimizer,epochs=10):
                 val_accuracy.append(accuracy/len(val_loader))
             running_loss=0
             model.train()
-    model.eval()
-    test_loss, accuracy= test(model,test_loader,criterion,device)
-    print("Test Loss  : {:.3f}  Test Accuracy : {:.3f} ".format(test_loss/len(test_loader), accuracy/len(test_loader)))
+    # Add model info 
+    model.n_hidden = 1024
+    model.n_out = len(labeldict)
+    model.labelsdict = labeldict
+    model.optimizer_state_dict = optimizer.state_dict
+    save_checkpoint(model, "./3_classfier_model.h5py")
     plot_loss(training_loss_list, val_loss_list, val_accuracy)
     print("-- End of training --")
 
@@ -202,5 +202,6 @@ train_loader = DataLoader(ld_train, batch_size = bs_val, shuffle = True)
 val_loader=DataLoader(ld_val, batch_size = 1, shuffle = True)
 test_loader=DataLoader(ld_test, batch_size = 1, shuffle = True)
 optimizer=torch.optim.Adam(model.parameters(), lr=learning_rate)
-train(train_loader,test_loader,val_loader,model, optimizer,epochs=10)
+labeldict = ld_train.classes
+train(train_loader,val_loader,model, optimizer,labeldict,epochs=10)
 
