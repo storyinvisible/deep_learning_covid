@@ -92,7 +92,20 @@ def validation(model, testloader, criterion, device):
         accuracy += equality.type(torch.FloatTensor).mean()
 
     return test_loss, accuracy
+def test(model,test_loader,criterion,device):
+    test_loss = 0
+    accuracy = 0
 
+    for images, labels in test_loader:
+        images, labels = images.to(device), labels.to(device)
+
+        output = model.forward(images)
+        test_loss += criterion(output, labels).item()
+
+        ps = torch.exp(output)
+        equality = (labels.data == ps.max(dim=1)[1])
+        accuracy += equality.type(torch.FloatTensor).mean()
+    return test_loss, accuracy
 def plot_loss(train_loss, val_loss, accuracy):
     if not os.path.exists("./plots"):
         os.mkdir("./plots")
@@ -127,7 +140,7 @@ def save_checkpoint(model, path):
                   }
     torch.save(checkpoint, path)
 
-def train(train_loader,val_loader,model, optimizer,epochs=10):
+def train(train_loader,test_loader,val_loader,model, optimizer,epochs=10):
     criterion = torch.nn.NLLLoss()
 
     steps=0
@@ -171,16 +184,23 @@ def train(train_loader,val_loader,model, optimizer,epochs=10):
                 val_accuracy.append(accuracy/len(val_loader))
             running_loss=0
             model.train()
+    model.eval()
+    test_loss, accuracy= test(model,test_loader,criterion,device)
+    print("Test Loss  : {:.3f}  Test Accuracy : {:.3f} ".format(test_loss/len(test_loader), accuracy/len(test_loader)))
     plot_loss(training_loss_list, val_loss_list, val_accuracy)
     print("-- End of training --")
+
+
 ld_train = Lung_Train_Dataset()
 ld_val= Lung_Val_Dataset()
+ld_test= Lung_Test_Dataset()
 # model = Net()
 model = custom_model_1(len(ld_train.classes))
 bs_val = 40
 learning_rate=0.01
 train_loader = DataLoader(ld_train, batch_size = bs_val, shuffle = True)
 val_loader=DataLoader(ld_val, batch_size = 1, shuffle = True)
+test_loader=DataLoader(ld_test, batch_size = 1, shuffle = True)
 optimizer=torch.optim.Adam(model.parameters(), lr=learning_rate)
-train(train_loader,val_loader,model, optimizer,epochs=10)
+train(train_loader,test_loader,val_loader,model, optimizer,epochs=10)
 
