@@ -87,9 +87,10 @@ class Lung_Train_Dataset(Dataset):
 
         # Open file as before
         path_to_file = '{}/{}.jpg'.format(self.dataset_paths['{}_{}'.format(group_val, class_val)], index_val)
-        with open(path_to_file, 'rb') as f:
-            im = np.asarray(Image.open(f)) / 255
-        f.close()
+        # with open(path_to_file, 'rb') as f:
+            # im = np.asarray(Image.open(f)) / 255
+        # f.close()
+        im = Image.open(path_to_file)
         return im
 
     def show_img(self, group_val, class_val, index_val):
@@ -144,7 +145,12 @@ class Lung_Train_Dataset(Dataset):
             label = 2
 
         im = self.open_img(self.groups, class_val, index)
-        im = transforms.functional.to_tensor(np.array(im)).float()
+        train_transforms = transforms.Compose([
+                                               transforms.RandomHorizontalFlip(),
+                                               transforms.ToTensor(),
+                                               transforms.Normalize([0.5],
+                                                                    [0.250])])
+        im = train_transforms(im)
         return im, label
 
 
@@ -220,9 +226,11 @@ class Lung_Val_Dataset(Dataset):
 
         # Open file as before
         path_to_file = '{}/{}.jpg'.format(self.dataset_paths['{}_{}'.format(group_val, class_val)], index_val)
-        with open(path_to_file, 'rb') as f:
-            im = np.asarray(Image.open(f)) / 255
-        f.close()
+        # with open(path_to_file, 'rb') as f:
+            # im = np.asarray(Image.open(f)) / 255
+        # f.close()
+        im = Image.open(path_to_file)
+        
         return im
 
     def show_img(self, group_val, class_val, index_val):
@@ -274,6 +282,10 @@ class Lung_Val_Dataset(Dataset):
             index = index - first_val - second_val
             label = 2
         im = self.open_img(self.groups, class_val, index)
-        im = transforms.functional.to_tensor(np.array(im)).float()
+        test_valid_transforms = transforms.Compose([ 
+                                      transforms.ToTensor(),
+                                      transforms.Normalize([0.5],
+                                                           [0.250])])
+        im = test_valid_transforms(im)
         return im, label
 

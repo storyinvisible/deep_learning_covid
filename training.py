@@ -13,6 +13,57 @@ import torch.nn.functional as F
 from torchvision import transforms
 from datetime import datetime
 from data_loader import *
+import os
+class custom_model_1(nn.Module):
+    def __init__(self, output_size, hidden_layer=1024, drop_p=0.5):
+        ''' Builds a feedforward network with arbitrary hidden layers.
+        
+            Arguments
+            ---------
+            input_size: integer, size of the input
+            output_size: integer, size of the output layer
+            hidden_layers: list of integers, the sizes of the hidden layers
+            drop_p: float between 0 and 1, dropout probability
+        '''
+        super().__init__()
+        
+        self.layer1 = nn.Sequential(nn.Conv2d(in_channels=1, out_channels=16, kernel_size=2, bias=False),
+                           nn.ReLU(),
+                           nn.BatchNorm2d(16),
+                           nn.MaxPool2d(2, 2))
+        self.layer2 = nn.Sequential(nn.Conv2d(in_channels=16, out_channels=32, kernel_size=1, bias=False),
+                           nn.ReLU(),
+                           nn.BatchNorm2d(32),
+                           nn.MaxPool2d(2, 2))
+        self.layer3 = nn.Sequential(nn.Conv2d(in_channels=32, out_channels=64, kernel_size=2, bias=False),
+                           nn.ReLU(),
+                           nn.BatchNorm2d(64),
+                           nn.MaxPool2d(2, 2))
+        self.layer4 = nn.Sequential(nn.Conv2d(in_channels=64, out_channels=64, kernel_size=1, bias=False),
+                           nn.ReLU(),
+                           nn.BatchNorm2d(64),
+                           nn.MaxPool2d(2, 2))
+        
+        self.out = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(5184, hidden_layer),
+            nn.Dropout(p=drop_p),
+            nn.LeakyReLU(0.2),
+            nn.Linear(hidden_layer, output_size)
+        )
+        
+    def forward(self, x):
+        ''' Forward pass through the network, returns the output logits '''
+        
+        # Forward through each layer in `hidden_layers`, with ReLU activation and dropout
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.out(x)
+        
+        return F.log_softmax(x, dim=1)
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -42,24 +93,58 @@ def validation(model, testloader, criterion, device):
 
     return test_loss, accuracy
 
+def plot_loss(train_loss, val_loss, accuracy):
+    if not os.path.exists("./plots"):
+        os.mkdir("./plots")
+    plt.figure()
+    plt.title("Train & Val loss")
+    plt.plot(train_loss)
+    plt.plot(val_loss)
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.legend(["train", "val"], loc="upper right")
+    plt.savefig(f"plots/trainvVal_loss.png")
+    plt.close()
+ 
+    plt.figure()
+    plt.title("Val accuracy")
+    plt.plot(accuracy)
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+    plt.savefig(f"plots/val_accuracy.png")
+    plt.close()
 
+# Define function to save checkpoint
+def save_checkpoint(model, path):
+    checkpoint = {'input': model.n_in,
+                  'hidden': model.n_hidden,
+                  'out': model.n_out,
+                  'labelsdict': model.labelsdict,
+                  'lr': model.lr,
+                  'state_dict': model.state_dict(),
+                  'opti_state_dict': model.optimizer_state_dict,
+                  'class_to_idx': model.class_to_idx
+                  }
+    torch.save(checkpoint, path)
 
 def train(train_loader,val_loader,model, optimizer,epochs=10):
     criterion = torch.nn.NLLLoss()
-
 
     steps=0
     running_loss=0
     print_every=50
     device="cuda"
     model.to(device)
+    training_loss_list = []
+    val_loss_list = []
+    val_accuracy = []
     for e in range(epochs):
         model.train()
         for k, (image, label) in enumerate(train_loader):
         #     print("-----")
-        #     print(k)
-        #     print(v[0])
-        #     print(v[1]
+            # print(k)
+            # print(image[0].shape)
+            # print(label.shape)
             image= image.to(device)
             label=label.to(device)
             optimizer.zero_grad()
@@ -81,11 +166,17 @@ def train(train_loader,val_loader,model, optimizer,epochs=10):
                       "Training Loss: {:.3f} - ".format(running_loss / print_every),
                       "Validation Loss: {:.3f} - ".format(test_loss / len(val_loader)),
                       "Validation Accuracy: {:.3f}".format(accuracy / len(val_loader)))
+                training_loss_list.append(running_loss/print_every)
+                val_loss_list.append(test_loss/len(val_loader))
+                val_accuracy.append(accuracy/len(val_loader))
             running_loss=0
             model.train()
+    plot_loss(training_loss_list, val_loss_list, val_accuracy)
+    print("-- End of training --")
 ld_train = Lung_Train_Dataset()
 ld_val= Lung_Val_Dataset()
-model = Net()
+# model = Net()
+model = custom_model_1(len(ld_train.classes))
 bs_val = 40
 learning_rate=0.01
 train_loader = DataLoader(ld_train, batch_size = bs_val, shuffle = True)
