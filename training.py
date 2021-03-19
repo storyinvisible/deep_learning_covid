@@ -20,7 +20,6 @@ class custom_model_1(nn.Module):
         
             Arguments
             ---------
-            input_size: integer, size of the input
             output_size: integer, size of the output layer
             hidden_layers: list of integers, the sizes of the hidden layers
             drop_p: float between 0 and 1, dropout probability
@@ -81,7 +80,8 @@ def validation(model, testloader, criterion, device):
     test_loss = 0
     accuracy = 0
 
-    for images, labels in testloader:
+    for args in testloader:
+        images, labels = args[0], args[1]
         images, labels = images.to(device), labels.to(device)
 
         output = model.forward(images)
@@ -106,7 +106,7 @@ def test(model,test_loader,criterion,device):
         equality = (labels.data == ps.max(dim=1)[1])
         accuracy += equality.type(torch.FloatTensor).mean()
     return test_loss, accuracy
-def plot_loss(train_loss, val_loss, accuracy):
+def plot_loss(train_loss, val_loss, accuracy, name):
     if not os.path.exists("./plots"):
         os.mkdir("./plots")
     plt.figure()
@@ -116,7 +116,7 @@ def plot_loss(train_loss, val_loss, accuracy):
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend(["train", "val"], loc="upper right")
-    plt.savefig(f"plots/trainvVal_loss.png")
+    plt.savefig(f"plots/trainvVal_loss_{name}.png")
     plt.close()
  
     plt.figure()
@@ -124,7 +124,7 @@ def plot_loss(train_loss, val_loss, accuracy):
     plt.plot(accuracy)
     plt.xlabel("Epochs")
     plt.ylabel("Accuracy")
-    plt.savefig(f"plots/val_accuracy.png")
+    plt.savefig(f"plots/val_accuracy_{name}.png")
     plt.close()
 
 # Define function to save checkpoint
@@ -186,22 +186,125 @@ def train(train_loader,val_loader,model, optimizer,labeldict,epochs=10):
     model.n_out = len(labeldict)
     model.labelsdict = labeldict
     model.optimizer_state_dict = optimizer.state_dict
-    save_checkpoint(model, "./3_classfier_model.h5py")
+    # save_checkpoint(model, "./2_classfier_model.h5py")
     plot_loss(training_loss_list, val_loss_list, val_accuracy)
     print("-- End of training --")
 
+def train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=10):
+    criterion = torch.nn.NLLLoss()
 
-ld_train = Lung_Train_Dataset()
-ld_val= Lung_Val_Dataset()
-ld_test= Lung_Test_Dataset()
+    step1=step2=0
+    running_loss1=0
+    running_loss2=0
+    print_every=50
+    device="cuda"
+    model1.to(device)
+    model2.to(device)
+    training_loss1_list = []
+    val_loss1_list = []
+    val_accuracy1 = []
+    training_loss2_list = []
+    val_loss2_list = []
+    val_accuracy2 = []
+    for e in range(epochs):
+        model1.train()
+        model2.train()
+        for image, label, _ in train_loader_1:
+        #     print("-----")
+            # print(k)
+            # print(image.shape)
+            # print(label.shape)
+            image= image.to(device)
+            label=label.to(device)
+            optimizer1.zero_grad()
+            predicted_labels = model1.forward(image)
+            loss1= criterion(predicted_labels,label)
+            loss1.backward()
+            optimizer1.step()
+            test_loss1=0
+            accuracy1=0
+            running_loss1+=loss1.item()
+            step1+=1
+            if step1%print_every==0:
+                with torch.no_grad():
+                    model1.eval()
+                    test_loss1, accuracy1=validation( model1, val_loader_1,criterion,device)
+                dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                print("Epoch: {}/{} - ".format(e + 1, epochs),
+                      " {} ".format(dt_string),
+                      "Training Loss (Normal/Infected): {:.3f} - ".format(running_loss1 / print_every),
+                      "Validation Loss (Normal/Infected): {:.3f} - ".format(test_loss1 / len(val_loader_1)),
+                      "Validation Accuracy (Normal/Infected): {:.3f}".format(accuracy1 / len(val_loader_1)))
+                training_loss1_list.append(running_loss1/print_every)
+                val_loss1_list.append(test_loss1/len(val_loader_1))
+                val_accuracy1.append(accuracy1/len(val_loader_1))
+            running_loss1=0
+            model1.train()
+        
+        for image, label in train_loader_2:
+            image= image.to(device)
+            label=label.to(device)
+            optimizer2.zero_grad()
+            predicted_labels = model1.forward(image)
+            loss2= criterion(predicted_labels,label)
+            loss2.backward()
+            optimizer2.step()
+            test_loss2=0
+            accuracy2=0
+            running_loss2+=loss2.item()
+            step2+=1
+            if step2%print_every==0:
+                with torch.no_grad():
+                    model2.eval()
+                    test_loss2, accuracy2=validation( model2, val_loader_2,criterion,device)
+                dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                print("Epoch: {}/{} - ".format(e + 1, epochs),
+                      " {} ".format(dt_string),
+                      "Training Loss (Covid/Non-covid): {:.3f} - ".format(running_loss2 / print_every),
+                      "Validation Loss (Covid/Non-covid): {:.3f} - ".format(test_loss2 / len(val_loader_2)),
+                      "Validation Accuracy (Covid/Non-covid): {:.3f}".format(accuracy2 / len(val_loader_2)))
+                training_loss1_list.append(running_loss1/print_every)
+                val_loss1_list.append(test_loss1/len(val_loader_2))
+                val_accuracy1.append(accuracy1/len(val_loader_2))
+            running_loss2=0
+            model2.train()
+    # Add model info 
+    # model1.n_hidden = 1024
+    # model1.n_out = 2
+    # model1.labelsdict = labeldict1
+    # model1.optimizer1_state_dict = optimizer1.state_dict
+    # model2.n_hidden = 1024
+    # model2.n_out = 2
+    # model2.labelsdict = labeldict2
+    # model2.optimizer2_state_dict = optimizer2.state_dict
+    # save_checkpoint(model1, "./classfier_model_normal_infected.h5py")
+    plot_loss(training_loss1_list, val_loss1_list, val_accuracy1, "1")
+    plot_loss(training_loss2_list, val_loss2_list, val_accuracy2, "2")
+    print("-- End of training --")
+
+
+# ld_train = Lung_Train_Dataset()
+# ld_val= Lung_Val_Dataset()
+# ld_test= Lung_Test_Dataset()
+ld_train_1 = Lung_Dataset(types="train", data_args=0, classification="binary")
+ld_val_1 = Lung_Dataset(types="val", data_args=0, classification="binary")
+ld_test_1 = Lung_Dataset(types="test", data_args=0, classification="binary")
+ld_train_2 = Lung_Dataset(types="train", data_args=0, classification="infected_only")
+ld_val_2 = Lung_Dataset(types="val", data_args=0, classification="infected_only")
+ld_test_2 = Lung_Dataset(types="test", data_args=0, classification="infected_only")
 # model = Net()
-model = custom_model_1(len(ld_train.classes))
+model1 = model2 = custom_model_1(output_size=2)
 bs_val = 40
 learning_rate=0.01
-train_loader = DataLoader(ld_train, batch_size = bs_val, shuffle = True)
-val_loader=DataLoader(ld_val, batch_size = 1, shuffle = True)
-test_loader=DataLoader(ld_test, batch_size = 1, shuffle = True)
-optimizer=torch.optim.Adam(model.parameters(), lr=learning_rate)
-labeldict = ld_train.classes
-train(train_loader,val_loader,model, optimizer,labeldict,epochs=10)
+train_loader_1 = DataLoader(ld_train_1, batch_size = bs_val, shuffle = True)
+val_loader_1=DataLoader(ld_val_1, batch_size = 1, shuffle = True)
+test_loader_1=DataLoader(ld_test_1, batch_size = 1, shuffle = True)
+train_loader_2 = DataLoader(ld_train_2, batch_size = bs_val, shuffle = True)
+val_loader_2=DataLoader(ld_val_2, batch_size = 1, shuffle = True)
+test_loader_2=DataLoader(ld_test_2, batch_size = 1, shuffle = True)
+optimizer1=torch.optim.Adam(model1.parameters(), lr=learning_rate)
+optimizer2= torch.optim.Adam(model2.parameters(), lr=learning_rate)
+labeldict1 = ld_train_1.classes
+labeldict2 = ld_train_2.classes
+train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=10)
 
