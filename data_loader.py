@@ -443,34 +443,52 @@ class Lung_Dataset(Dataset):
         self.img_size = (150, 150)
 
         # Only two classes will be considered here (normal and infected)
-        assert (classification=="binary" or classification=="trinary")
+        assert (classification=="binary" or classification=="trinary" or classification=="infected_only")
         self.classification =classification
         if classification=="binary":
             self.classes = {0: 'normal', 1: 'infected', 2:"infected_covid",3: "infected_non_covid"}
         elif classification=="trinary":
             self.classes = {0: 'normal', 1: 'infected_covid', 2: "infected_non_covid"}
-
+        elif classification=="infected_only":
+            self.classes = { 0: 'infected_covid', 1: "infected_non_covid"}
         # The dataset consists only of training images
-        assert (types=="train" or type=="val" or type=="test")
+        assert (types=="train" or types=="val" or types=="test")
         self.groups = types
         # Number of images in each part of the dataset
         if types=="train":
-            self.dataset_numbers = {'train_normal': 1341, \
-                                    'train_infected_covid': 1334, \
-                                    'train_infected_non_covid': 2529}
+            if classification=="infected_only":
+                self.dataset_numbers = {'train_infected_covid': 1334, \
+                                        'train_infected_non_covid': 2529}
+            else:
+                self.dataset_numbers = {'train_normal': 1341, \
+                                        'train_infected_covid': 1334, \
+                                        'train_infected_non_covid': 2529}
         elif types=="test":
-            self.dataset_numbers = {'test_normal': 234, \
-                                    'test_infected_covid': 139, \
-                                    'test_infected_non_covid': 242}
+            if classification == "infected_only":
+                self.dataset_numbers = {'test_infected_covid': 139, \
+                                        'test_infected_non_covid': 242}
+            else:
+                self.dataset_numbers = {'test_normal': 234, \
+                                        'test_infected_covid': 139, \
+                                        'test_infected_non_covid': 242}
         elif types=="val":
-            self.dataset_numbers = {'val_normal': 7, \
-                                    'val_infected_covid': 8, \
-                                    'val_infected_non_covid': 7}
+            if classification== "infected_only":
+                self.dataset_numbers = {'val_normal': 7, \
+                                        'val_infected_covid': 8, \
+                                        'val_infected_non_covid': 7}
+            else:
+                self.dataset_numbers = {'val_normal': 7, \
+                                        'val_infected_covid': 8, \
+                                        'val_infected_non_covid': 7}
 
 
         # Path to images for different parts of the dataset
-
-        self.dataset_paths = {'{}_normal'.format(types): './dataset/{}/normal/'.format(types), \
+        if classification== "infected_only":
+            self.dataset_paths = {
+                              '{}_infected_covid'.format(types): './dataset/{}/infected/covid'.format(types), \
+                              '{}_infected_non_covid'.format(types): './dataset/{}/infected/non-covid'.format(types)}
+        else :
+            self.dataset_paths = {'{}_normal'.format(types): './dataset/{}/normal/'.format(types), \
                               '{}_infected_covid'.format(types): './dataset/{}/infected/covid'.format(types), \
                               '{}_infected_non_covid'.format(types): './dataset/{}/infected/non-covid'.format(types)}
 
@@ -548,17 +566,26 @@ class Lung_Dataset(Dataset):
         # Get item special method
         first_val = int(list(self.dataset_numbers.values())[0])
         second_val = int(list(self.dataset_numbers.values())[1])
-        if index < first_val:
-            class_val = 'normal'
-            label = 0
-        elif index < (second_val+first_val):
-            class_val = 'infected_covid'
-            index = index - first_val
-            label = 1
+        if self.classification=="infected_only":
+            if index < first_val:
+                class_val = 'infected_covid'
+                label = 0
+            elif index < (second_val+first_val):
+                class_val = 'infected_non_covid'
+                index = index - first_val
+                label = 1
         else:
-            class_val = 'infected_non_covid'
-            index = index - first_val - second_val
-            label = 2
+            if index < first_val:
+                class_val = 'normal'
+                label = 0
+            elif index < (second_val+first_val):
+                class_val = 'infected_covid'
+                index = index - first_val
+                label = 1
+            else:
+                class_val = 'infected_non_covid'
+                index = index - first_val - second_val
+                label = 2
         im = self.open_img(self.groups, class_val, index)
 
 
@@ -598,3 +625,9 @@ class Lung_Dataset(Dataset):
         im = transforms.functional.to_tensor(np.array(im)).float()
         return im, label
 
+
+ld_test= Lung_Dataset("train",0,"infected_only")
+print(ld_test[10])
+test_loader=DataLoader(ld_test, batch_size = 10, shuffle = True)
+for i,label1 in test_loader:
+    print(label1)
