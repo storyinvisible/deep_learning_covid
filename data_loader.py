@@ -473,7 +473,7 @@ class Lung_Dataset(Dataset):
                                         'test_infected_non_covid': 242}
         elif types=="val":
             if classification== "infected_only":
-                self.dataset_numbers = {'val_normal': 7, \
+                self.dataset_numbers = {
                                         'val_infected_covid': 8, \
                                         'val_infected_non_covid': 7}
             else:
@@ -626,7 +626,7 @@ class Lung_Dataset(Dataset):
         return im, label
 
 
-ld_test= Lung_Dataset("train",0,"infected_only")
+ld_test= Lung_Dataset("val",0,"infected_only")
 print(ld_test[10])
 test_loader=DataLoader(ld_test, batch_size = 10, shuffle = True)
 for i,label1 in test_loader:
