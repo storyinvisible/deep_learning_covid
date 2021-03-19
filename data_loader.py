@@ -566,7 +566,6 @@ class Lung_Dataset(Dataset):
         # Get item special method
         first_val = int(list(self.dataset_numbers.values())[0])
         second_val = int(list(self.dataset_numbers.values())[1])
-        class_val = None
         if self.classification=="infected_only":
             if index < first_val:
                 class_val = 'infected_covid'
@@ -596,7 +595,6 @@ class Lung_Dataset(Dataset):
                                                transforms.Normalize([0.5],
                                                                     [0.250])])
         im= train_transforms(im)
-        # im = transforms.functional.to_tensor(np.array(im)).float()
         if self.classification=="binary":
             if label==1 or label ==2:
                 return im, 1, label

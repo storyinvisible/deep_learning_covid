@@ -47,8 +47,10 @@ class custom_model_1(nn.Module):
             nn.Flatten(),
             nn.Linear(5184, hidden_layer),
             nn.Dropout(p=drop_p),
-            nn.LeakyReLU(0.2),
-            nn.Linear(hidden_layer, output_size)
+            nn.LeakyReLU(0.1),
+            nn.Linear(hidden_layer, 64),
+            nn.LeakyReLU(0.1),
+            nn.Linear(64, output_size)
         )
         
     def forward(self, x):
@@ -263,9 +265,9 @@ def train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, mode
                       "Training Loss (Covid/Non-covid): {:.3f} - ".format(running_loss2 / print_every),
                       "Validation Loss (Covid/Non-covid): {:.3f} - ".format(test_loss2 / len(val_loader_2)),
                       "Validation Accuracy (Covid/Non-covid): {:.3f}".format(accuracy2 / len(val_loader_2)))
-                training_loss1_list.append(running_loss1/print_every)
-                val_loss1_list.append(test_loss1/len(val_loader_2))
-                val_accuracy1.append(accuracy1/len(val_loader_2))
+                training_loss2_list.append(running_loss2/print_every)
+                val_loss2_list.append(test_loss2/len(val_loader_2))
+                val_accuracy2.append(accuracy2/len(val_loader_2))
             running_loss2=0
             model2.train()
     # Add model info 
