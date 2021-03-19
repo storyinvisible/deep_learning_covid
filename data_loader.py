@@ -595,7 +595,7 @@ class Lung_Dataset(Dataset):
                                                transforms.Normalize([0.5],
                                                                     [0.250])])
         im= train_transforms(im)
-        im = transforms.functional.to_tensor(np.array(im)).float()
+        # im = transforms.functional.to_tensor(np.array(im)).float()
         if self.classification=="binary":
             if label==1 or label ==2:
                 return im, 1, label
