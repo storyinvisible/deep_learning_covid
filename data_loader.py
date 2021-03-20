@@ -583,6 +583,8 @@ class Lung_Dataset(Dataset):
                 class_val = 'infected_non_covid'
                 index = index - first_val
                 label = 1
+            else:
+                return self.get_flip(index -sum(self.dataset_numbers.values()))
         else:
             if index < first_val:
                 class_val = 'normal'
@@ -619,13 +621,18 @@ class Lung_Dataset(Dataset):
     def get_flip(self,index):
         first_val = int(list(self.dataset_numbers.values())[0])
         second_val = int(list(self.dataset_numbers.values())[1])
-        if index < first_val:
-            class_val = 'normal'
-            label = 0
-        elif index < (second_val + first_val):
-            class_val = 'infected_covid'
-            index = index - first_val
-            label = 1
+        if self.classification=="infected_only":
+            if index < first_val:
+                class_val = 'infected_covid'
+                label = 0
+        else:
+            if index < first_val:
+                class_val = 'normal'
+                label = 0
+            elif index < (second_val + first_val):
+                class_val = 'infected_covid'
+                index = index - first_val
+                label = 1
 
         im = self.open_img(self.groups, class_val, index)
         transforms_image = transforms.Compose([
@@ -643,10 +650,10 @@ class Lung_Dataset(Dataset):
             return im, label
 
 
-ld_test= Lung_Dataset("train",0,"binary")
+ld_test= Lung_Dataset("train",1,"infected_only")
 
 print(len(ld_test))
 test_loader=DataLoader(ld_test, batch_size = 10, shuffle = True)
-for i,label1 ,label2 in test_loader:
+for i,label1  in test_loader:
     print(i.shape)
     pass
