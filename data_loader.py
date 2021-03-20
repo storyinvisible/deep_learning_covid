@@ -566,6 +566,7 @@ class Lung_Dataset(Dataset):
         # Get item special method
         first_val = int(list(self.dataset_numbers.values())[0])
         second_val = int(list(self.dataset_numbers.values())[1])
+        class_val = None
         if self.classification=="infected_only":
             if index < first_val:
                 class_val = 'infected_covid'
@@ -628,7 +629,11 @@ class Lung_Dataset(Dataset):
         return im, label
 
 
+<<<<<<< HEAD
 # ld_test= Lung_Dataset("val",0,"infected_only")
+=======
+# ld_test= Lung_Dataset("train",0,"infected_only")
+>>>>>>> c40f3ce3903fc64857b9dc25dda90efff007cce8
 # print(ld_test[10])
 # test_loader=DataLoader(ld_test, batch_size = 10, shuffle = True)
 # for i,label1 in test_loader:
