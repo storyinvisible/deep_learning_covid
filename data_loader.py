@@ -587,14 +587,17 @@ class Lung_Dataset(Dataset):
                 index = index - first_val - second_val
                 label = 2
         im = self.open_img(self.groups, class_val, index)
-
+        transform_1= transforms.ToTensor()
+        im= transform_1(im)
 
         train_transforms = transforms.Compose([
                                                transforms.RandomHorizontalFlip(),
                                                transforms.ToTensor(),
                                                transforms.Normalize([0.5],
-                                                                    [0.250])])
-        im= train_transforms(im)
+                                                                   [0.250])])
+        if self.data_args==1 and self.data_args==2:
+            im= train_transforms(im)
+        # im = transforms.functional.to_tensor(np.array(im)).float()
         if self.classification=="binary":
             if label==1 or label ==2:
                 return im, 1, label
@@ -625,7 +628,11 @@ class Lung_Dataset(Dataset):
         return im, label
 
 
+<<<<<<< HEAD
+# ld_test= Lung_Dataset("val",0,"infected_only")
+=======
 # ld_test= Lung_Dataset("train",0,"infected_only")
+>>>>>>> c40f3ce3903fc64857b9dc25dda90efff007cce8
 # print(ld_test[10])
 # test_loader=DataLoader(ld_test, batch_size = 10, shuffle = True)
 # for i,label1 in test_loader:
