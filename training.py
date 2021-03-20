@@ -293,36 +293,36 @@ def train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, mode
     return model1, model2
 
 
-ld_train = Lung_Train_Dataset()
-ld_val= Lung_Val_Dataset()
-ld_test= Lung_Test_Dataset()
-ld_train_1 = Lung_Dataset(types="train", data_args=1, classification="binary")
-ld_val_1 = Lung_Dataset(types="val", data_args=0, classification="binary")
-ld_test_1 = Lung_Dataset(types="test", data_args=0, classification="binary")
-ld_train_2 = Lung_Dataset(types="train", data_args=1, classification="infected_only")
-ld_val_2 = Lung_Dataset(types="val", data_args=0, classification="infected_only")
-ld_test_2 = Lung_Dataset(types="test", data_args=0, classification="infected_only")
-# model = Net()
-model1 = model2 = custom_model_1(output_size=2)
-bs_val = 40
-learning_rate=0.01
-train_loader_1 = DataLoader(ld_train_1, batch_size = bs_val, shuffle = True)
-val_loader_1=DataLoader(ld_val_1, batch_size = 1, shuffle = True)
-test_loader_1=DataLoader(ld_test_1, batch_size = 1, shuffle = True)
-train_loader_2 = DataLoader(ld_train_2, batch_size = bs_val, shuffle = True)
-val_loader_2=DataLoader(ld_val_2, batch_size = 1, shuffle = True)
-test_loader_2=DataLoader(ld_test_2, batch_size = 1, shuffle = True)
-optimizer1=torch.optim.Adam(model1.parameters(), lr=learning_rate)
-optimizer2= torch.optim.Adam(model2.parameters(), lr=learning_rate)
-labeldict1 = ld_train_1.classes
-labeldict2 = ld_train_2.classes
-model1, model2 = train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=5)
+# ld_train = Lung_Train_Dataset()
+# ld_val= Lung_Val_Dataset()
+# ld_test= Lung_Test_Dataset()
+# ld_train_1 = Lung_Dataset(types="train", data_args=1, classification="binary")
+# ld_val_1 = Lung_Dataset(types="val", data_args=0, classification="binary")
+# ld_test_1 = Lung_Dataset(types="test", data_args=0, classification="binary")
+# ld_train_2 = Lung_Dataset(types="train", data_args=1, classification="infected_only")
+# ld_val_2 = Lung_Dataset(types="val", data_args=0, classification="infected_only")
+# ld_test_2 = Lung_Dataset(types="test", data_args=0, classification="infected_only")
+# # model = Net()
+# model1 = model2 = custom_model_1(output_size=2)
+# bs_val = 40
+# learning_rate=0.01
+# train_loader_1 = DataLoader(ld_train_1, batch_size = bs_val, shuffle = True)
+# val_loader_1=DataLoader(ld_val_1, batch_size = 1, shuffle = True)
+# test_loader_1=DataLoader(ld_test_1, batch_size = 1, shuffle = True)
+# train_loader_2 = DataLoader(ld_train_2, batch_size = bs_val, shuffle = True)
+# val_loader_2=DataLoader(ld_val_2, batch_size = 1, shuffle = True)
+# test_loader_2=DataLoader(ld_test_2, batch_size = 1, shuffle = True)
+# optimizer1=torch.optim.Adam(model1.parameters(), lr=learning_rate)
+# optimizer2= torch.optim.Adam(model2.parameters(), lr=learning_rate)
+# labeldict1 = ld_train_1.classes
+# labeldict2 = ld_train_2.classes
+# model1, model2 = train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=5)
 
-criterion = torch.nn.NLLLoss()
-test_loss1, accuracy1 = test(model1, test_loader_1,criterion,"cuda")
-test_loss2, accuracy2 = test(model2, test_loader_2,criterion,"cuda")
-print("Test Loss (Normal/Infected): {:.3f} - ".format(test_loss1 / len(test_loader_1)),
-    "Test Accuracy (Normal/Infected): {:.3f}".format(accuracy1 / len(test_loader_1)))
-print(
-    "Test Loss (Covid/Non-covid): {:.3f} - ".format(test_loss2 / len(test_loader_2)),
-    "Test Accuracy (Covid/Non-covid): {:.3f}".format(accuracy2 / len(test_loader_2)))
+# criterion = torch.nn.NLLLoss()
+# test_loss1, accuracy1 = test(model1, test_loader_1,criterion,"cuda")
+# test_loss2, accuracy2 = test(model2, test_loader_2,criterion,"cuda")
+# print("Test Loss (Normal/Infected): {:.3f} - ".format(test_loss1 / len(test_loader_1)),
+#     "Test Accuracy (Normal/Infected): {:.3f}".format(accuracy1 / len(test_loader_1)))
+# print(
+#     "Test Loss (Covid/Non-covid): {:.3f} - ".format(test_loss2 / len(test_loader_2)),
+#     "Test Accuracy (Covid/Non-covid): {:.3f}".format(accuracy2 / len(test_loader_2)))
