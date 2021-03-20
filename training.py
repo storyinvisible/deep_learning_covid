@@ -14,6 +14,7 @@ from torchvision import transforms
 from datetime import datetime
 from data_loader import *
 import os
+from sklearn.metrics import confusion_matrix
 class custom_model_1(nn.Module):
     def __init__(self, output_size, hidden_layer=1024, drop_p=0.5):
         ''' Builds a feedforward network with arbitrary hidden layers.
@@ -97,16 +98,21 @@ def validation(model, testloader, criterion, device):
 def test(model,test_loader,criterion,device):
     test_loss = 0
     accuracy = 0
-
-    for images, labels in test_loader:
+    orig_labels = []
+    pred_labels = []
+    for args in test_loader:
+        images, labels = args[0], args[1]
         images, labels = images.to(device), labels.to(device)
 
         output = model.forward(images)
+        orig_labels.extend(labels.tolist())
+        pred_labels.extend(output.max(1).indices.tolist())
         test_loss += criterion(output, labels).item()
 
         ps = torch.exp(output)
         equality = (labels.data == ps.max(dim=1)[1])
         accuracy += equality.type(torch.FloatTensor).mean()
+    print(confusion_matrix(orig_labels, pred_labels))
     return test_loss, accuracy
 def plot_loss(train_loss, val_loss, accuracy, name):
     if not os.path.exists("./plots"):
@@ -271,18 +277,20 @@ def train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, mode
             running_loss2=0
             model2.train()
     # Add model info 
-    # model1.n_hidden = 1024
-    # model1.n_out = 2
-    # model1.labelsdict = labeldict1
-    # model1.optimizer1_state_dict = optimizer1.state_dict
-    # model2.n_hidden = 1024
-    # model2.n_out = 2
-    # model2.labelsdict = labeldict2
-    # model2.optimizer2_state_dict = optimizer2.state_dict
-    # save_checkpoint(model1, "./classfier_model_normal_infected.h5py")
+    model1.n_hidden = 1024
+    model1.n_out = 2
+    model1.labelsdict = labeldict1
+    model1.optimizer_state_dict = optimizer1.state_dict
+    model2.n_hidden = 1024
+    model2.n_out = 2
+    model2.labelsdict = labeldict2
+    model2.optimizer_state_dict = optimizer2.state_dict
+    save_checkpoint(model1, "./classfier_model_normal_infected.h5py")
+    save_checkpoint(model2, "./classfier_model_covid_noncovid.h5py")
     plot_loss(training_loss1_list, val_loss1_list, val_accuracy1, "1")
     plot_loss(training_loss2_list, val_loss2_list, val_accuracy2, "2")
     print("-- End of training --")
+    return model1, model2
 
 
 # ld_train = Lung_Train_Dataset()
@@ -308,5 +316,13 @@ optimizer1=torch.optim.Adam(model1.parameters(), lr=learning_rate)
 optimizer2= torch.optim.Adam(model2.parameters(), lr=learning_rate)
 labeldict1 = ld_train_1.classes
 labeldict2 = ld_train_2.classes
-train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=10)
+model1, model2 = train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=10)
 
+criterion = torch.nn.NLLLoss()
+test_loss1, accuracy1 = test(model1, test_loader_1,criterion,"cuda")
+test_loss2, accuracy2 = test(model2, test_loader_2,criterion,"cuda")
+print("Test Loss (Normal/Infected): {:.3f} - ".format(test_loss1 / len(test_loader_1)),
+    "Test Accuracy (Normal/Infected): {:.3f}".format(accuracy1 / len(test_loader_1)))
+print(
+    "Test Loss (Covid/Non-covid): {:.3f} - ".format(test_loss2 / len(test_loader_2)),
+    "Test Accuracy (Covid/Non-covid): {:.3f}".format(accuracy2 / len(test_loader_2)))
