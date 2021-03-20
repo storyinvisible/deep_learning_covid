@@ -286,20 +286,20 @@ def train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, mode
     model2.labelsdict = labeldict2
     model2.optimizer_state_dict = optimizer2.state_dict
     save_checkpoint(model1, "./classfier_model_normal_infected.h5py")
-    save_checkpoint(model2, "./classfier_model_covid_noncovid.h5py")
+    # save_checkpoint(model2, "./classfier_model_covid_noncovid.h5py")
     plot_loss(training_loss1_list, val_loss1_list, val_accuracy1, "1")
     plot_loss(training_loss2_list, val_loss2_list, val_accuracy2, "2")
     print("-- End of training --")
     return model1, model2
 
 
-# ld_train = Lung_Train_Dataset()
-# ld_val= Lung_Val_Dataset()
-# ld_test= Lung_Test_Dataset()
-ld_train_1 = Lung_Dataset(types="train", data_args=0, classification="binary")
+ld_train = Lung_Train_Dataset()
+ld_val= Lung_Val_Dataset()
+ld_test= Lung_Test_Dataset()
+ld_train_1 = Lung_Dataset(types="train", data_args=1, classification="binary")
 ld_val_1 = Lung_Dataset(types="val", data_args=0, classification="binary")
 ld_test_1 = Lung_Dataset(types="test", data_args=0, classification="binary")
-ld_train_2 = Lung_Dataset(types="train", data_args=0, classification="infected_only")
+ld_train_2 = Lung_Dataset(types="train", data_args=1, classification="infected_only")
 ld_val_2 = Lung_Dataset(types="val", data_args=0, classification="infected_only")
 ld_test_2 = Lung_Dataset(types="test", data_args=0, classification="infected_only")
 # model = Net()
@@ -316,7 +316,7 @@ optimizer1=torch.optim.Adam(model1.parameters(), lr=learning_rate)
 optimizer2= torch.optim.Adam(model2.parameters(), lr=learning_rate)
 labeldict1 = ld_train_1.classes
 labeldict2 = ld_train_2.classes
-model1, model2 = train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=10)
+model1, model2 = train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=5)
 
 criterion = torch.nn.NLLLoss()
 test_loss1, accuracy1 = test(model1, test_loader_1,criterion,"cuda")
