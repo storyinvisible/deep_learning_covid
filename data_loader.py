@@ -549,8 +549,16 @@ class Lung_Dataset(Dataset):
         """
 
         # Length function
-
-        length =sum(self.dataset_numbers.values())*(self.data_args+1)
+        add=0
+        if self.classification=="infected_only":
+            for key in self.dataset_numbers:
+                if "infected_covid"in key:
+                    add=self.dataset_numbers[key]
+        else:
+            for key in self.dataset_numbers:
+                if "infected_non_covid" in key:
+                    add+=self.dataset_numbers[key]
+        length =sum(self.dataset_numbers.values())+(self.data_args*(add))
         return int(length)
 
     def __getitem__(self, index):
@@ -583,10 +591,13 @@ class Lung_Dataset(Dataset):
                 class_val = 'infected_covid'
                 index = index - first_val
                 label = 1
-            else:
+            elif index < sum(self.dataset_numbers.values()):
                 class_val = 'infected_non_covid'
                 index = index - first_val - second_val
                 label = 2
+            else:
+                return self.get_flip(index -sum(self.dataset_numbers.values()))
+
         im = self.open_img(self.groups, class_val, index)
         transform_1= transforms.ToTensor()
         im= transform_1(im)
@@ -596,8 +607,6 @@ class Lung_Dataset(Dataset):
                                                transforms.ToTensor(),
                                                transforms.Normalize([0.5],
                                                                    [0.250])])
-        if self.data_args==1 and self.data_args==2:
-            im= train_transforms(im)
         # im = transforms.functional.to_tensor(np.array(im)).float()
         if self.classification=="binary":
             if label==1 or label ==2:
@@ -606,7 +615,7 @@ class Lung_Dataset(Dataset):
                 return im ,0,0
         else:
             return im, label
-    def get_normal(self,index):
+    def get_flip(self,index):
         first_val = int(list(self.dataset_numbers.values())[0])
         second_val = int(list(self.dataset_numbers.values())[1])
         if index < first_val:
@@ -616,25 +625,27 @@ class Lung_Dataset(Dataset):
             class_val = 'infected_covid'
             index = index - first_val
             label = 1
-        else:
-            class_val = 'infected_non_covid'
-            index = index - first_val - second_val
-            label = 2
+
         im = self.open_img(self.groups, class_val, index)
-        test_valid_transforms = transforms.Compose([
+        transforms_image = transforms.Compose([
                                       transforms.ToTensor(),
                                       transforms.Normalize([0.5],
                                                            [0.250])])
-        im = transforms.functional.to_tensor(np.array(im)).float()
-        return im, label
+        im =transforms_image(im)
+        im= torch.flip(im,[0, 1])
+        if self.classification == "binary":
+            if label == 1 or label == 2:
+                return im, 1, label
+            else:
+                return im, 0, 0
+        else:
+            return im, label
 
 
-<<<<<<< HEAD
-# ld_test= Lung_Dataset("val",0,"infected_only")
-=======
-# ld_test= Lung_Dataset("train",0,"infected_only")
->>>>>>> c40f3ce3903fc64857b9dc25dda90efff007cce8
-# print(ld_test[10])
+# ld_test= Lung_Dataset("train",0,"binary")
+#
+# print(len(ld_test))
 # test_loader=DataLoader(ld_test, batch_size = 10, shuffle = True)
-# for i,label1 in test_loader:
-#     print(label1)
+# for i,label1 ,label2 in test_loader:
+#     print(i.shape)
+#     pass
