@@ -90,7 +90,7 @@ class Lung_Dataset(Dataset):
         # Generate description
         msg = "This is the {} dataset of the Lung Dataset".format(self.groups)
         msg += " used for the Small Project in the 50.039 Deep Learning class"
-        msg += " in March 2021. \n"
+        msg += " in 21 March 2021. \n"
         msg += "It contains a total of {} images, ".format(sum(self.dataset_numbers.values()))
         msg += "of size {} by {}.\n".format(self.img_size[0], self.img_size[1])
         msg += "The images are stored in the following locations "
