@@ -156,6 +156,9 @@ def train(train_loader,val_loader,model, optimizer,labeldict,epochs=10):
     training_loss_list = []
     val_loss_list = []
     val_accuracy = []
+    model.n_hidden = 1024
+    model.n_out = len(labeldict)
+    model.labelsdict = labeldict
     for e in range(epochs):
         model.train()
         for k, (image, label) in enumerate(train_loader):
@@ -189,12 +192,13 @@ def train(train_loader,val_loader,model, optimizer,labeldict,epochs=10):
                 val_accuracy.append(accuracy/len(val_loader))
             running_loss=0
             model.train()
+        if e%3==0:
+            # Add model info 
+            model.optimizer_state_dict = optimizer.state_dict
+            save_checkpoint(model, "./3_classfier_model.h5py")
     # Add model info 
-    model.n_hidden = 1024
-    model.n_out = len(labeldict)
-    model.labelsdict = labeldict
     model.optimizer_state_dict = optimizer.state_dict
-    # save_checkpoint(model, "./2_classfier_model.h5py")
+    save_checkpoint(model, "./3_classfier_model.h5py")
     plot_loss(training_loss_list, val_loss_list, val_accuracy)
     print("-- End of training --")
 
@@ -214,6 +218,12 @@ def train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, mode
     training_loss2_list = []
     val_loss2_list = []
     val_accuracy2 = []
+    model1.n_hidden = 1024
+    model1.n_out = 2
+    model1.labelsdict = labeldict1
+    model2.n_hidden = 1024
+    model2.n_out = 2
+    model2.labelsdict = labeldict2
     for e in range(epochs):
         model1.train()
         model2.train()
@@ -276,53 +286,73 @@ def train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, mode
                 val_accuracy2.append(accuracy2/len(val_loader_2))
             running_loss2=0
             model2.train()
+        if e%3==0:
+            # Add model info 
+            model1.optimizer_state_dict = optimizer1.state_dict    
+            model2.optimizer_state_dict = optimizer2.state_dict
+            save_checkpoint(model1, "./classfier_model_normal_infected.h5py")
+            save_checkpoint(model2, "./classfier_model_covid_noncovid.h5py")
     # Add model info 
-    model1.n_hidden = 1024
-    model1.n_out = 2
-    model1.labelsdict = labeldict1
-    model1.optimizer_state_dict = optimizer1.state_dict
-    model2.n_hidden = 1024
-    model2.n_out = 2
-    model2.labelsdict = labeldict2
+    model1.optimizer_state_dict = optimizer1.state_dict    
     model2.optimizer_state_dict = optimizer2.state_dict
     save_checkpoint(model1, "./classfier_model_normal_infected.h5py")
-    # save_checkpoint(model2, "./classfier_model_covid_noncovid.h5py")
+    save_checkpoint(model2, "./classfier_model_covid_noncovid.h5py")
     plot_loss(training_loss1_list, val_loss1_list, val_accuracy1, "1")
     plot_loss(training_loss2_list, val_loss2_list, val_accuracy2, "2")
     print("-- End of training --")
     return model1, model2
 
+def load_model_binary(file_name1="classfier_model_normal_infected.h5py", file_name2="classfier_model_covid_noncovid.h5py"):
+    checkpoint_1=torch.load(file_name1) # normal and infected
+    model_1 =  custom_model_1(2)
+    model_1.to("cuda")
+    model_1.load_state_dict(checkpoint_1["state_dict"])
+    model_1.eval()
+    checkpoint_2=torch.load(file_name2)
+    model_2= custom_model_1(2)
+    model_2.to("cuda")
+    model_2.load_state_dict(checkpoint_2["state_dict"])
+    model_2.eval()
+    return model_1, model_2
 
-# ld_train = Lung_Train_Dataset()
-# ld_val= Lung_Val_Dataset()
-# ld_test= Lung_Test_Dataset()
-# ld_train_1 = Lung_Dataset(types="train", data_args=1, classification="binary")
-# ld_val_1 = Lung_Dataset(types="val", data_args=0, classification="binary")
-# ld_test_1 = Lung_Dataset(types="test", data_args=0, classification="binary")
-# ld_train_2 = Lung_Dataset(types="train", data_args=1, classification="infected_only")
-# ld_val_2 = Lung_Dataset(types="val", data_args=0, classification="infected_only")
-# ld_test_2 = Lung_Dataset(types="test", data_args=0, classification="infected_only")
-# # model = Net()
-# model1 = model2 = custom_model_1(output_size=2)
-# bs_val = 40
-# learning_rate=0.01
-# train_loader_1 = DataLoader(ld_train_1, batch_size = bs_val, shuffle = True)
-# val_loader_1=DataLoader(ld_val_1, batch_size = 1, shuffle = True)
-# test_loader_1=DataLoader(ld_test_1, batch_size = 1, shuffle = True)
-# train_loader_2 = DataLoader(ld_train_2, batch_size = bs_val, shuffle = True)
-# val_loader_2=DataLoader(ld_val_2, batch_size = 1, shuffle = True)
-# test_loader_2=DataLoader(ld_test_2, batch_size = 1, shuffle = True)
-# optimizer1=torch.optim.Adam(model1.parameters(), lr=learning_rate)
-# optimizer2= torch.optim.Adam(model2.parameters(), lr=learning_rate)
-# labeldict1 = ld_train_1.classes
-# labeldict2 = ld_train_2.classes
-# model1, model2 = train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=5)
+def load_model_trinary(file_name="3_classfier_mode.h5py"):
+    checkpoint_1=torch.load(file_name) # normal and infected
+    model =  custom_model_1(3)
+    model.to("cuda")
+    model.load_state_dict(checkpoint_1["state_dict"])
+    model.eval()
+    return model
 
-# criterion = torch.nn.NLLLoss()
-# test_loss1, accuracy1 = test(model1, test_loader_1,criterion,"cuda")
-# test_loss2, accuracy2 = test(model2, test_loader_2,criterion,"cuda")
-# print("Test Loss (Normal/Infected): {:.3f} - ".format(test_loss1 / len(test_loader_1)),
-#     "Test Accuracy (Normal/Infected): {:.3f}".format(accuracy1 / len(test_loader_1)))
-# print(
-#     "Test Loss (Covid/Non-covid): {:.3f} - ".format(test_loss2 / len(test_loader_2)),
-#     "Test Accuracy (Covid/Non-covid): {:.3f}".format(accuracy2 / len(test_loader_2)))
+ld_train = Lung_Train_Dataset()
+ld_val= Lung_Val_Dataset()
+ld_test= Lung_Test_Dataset()
+ld_train_1 = Lung_Dataset(types="train", data_args=1, classification="binary")
+ld_val_1 = Lung_Dataset(types="val", data_args=0, classification="binary")
+ld_test_1 = Lung_Dataset(types="test", data_args=0, classification="binary")
+ld_train_2 = Lung_Dataset(types="train", data_args=1, classification="infected_only")
+ld_val_2 = Lung_Dataset(types="val", data_args=0, classification="infected_only")
+ld_test_2 = Lung_Dataset(types="test", data_args=0, classification="infected_only")
+# model = Net()
+model1 = model2 = custom_model_1(output_size=2)
+bs_val = 40
+learning_rate=0.01
+train_loader_1 = DataLoader(ld_train_1, batch_size = bs_val, shuffle = True)
+val_loader_1=DataLoader(ld_val_1, batch_size = 1, shuffle = True)
+test_loader_1=DataLoader(ld_test_1, batch_size = 1, shuffle = True)
+train_loader_2 = DataLoader(ld_train_2, batch_size = bs_val, shuffle = True)
+val_loader_2=DataLoader(ld_val_2, batch_size = 1, shuffle = True)
+test_loader_2=DataLoader(ld_test_2, batch_size = 1, shuffle = True)
+optimizer1=torch.optim.Adam(model1.parameters(), lr=learning_rate)
+optimizer2= torch.optim.Adam(model2.parameters(), lr=learning_rate)
+labeldict1 = ld_train_1.classes
+labeldict2 = ld_train_2.classes
+model1, model2 = train_binary(train_loader_1,val_loader_1, train_loader_2, val_loader_2, model1, model2, optimizer1, optimizer2, labeldict1, labeldict2, epochs=5)
+
+criterion = torch.nn.NLLLoss()
+test_loss1, accuracy1 = test(model1, test_loader_1,criterion,"cuda")
+test_loss2, accuracy2 = test(model2, test_loader_2,criterion,"cuda")
+print("Test Loss (Normal/Infected): {:.3f} - ".format(test_loss1 / len(test_loader_1)),
+    "Test Accuracy (Normal/Infected): {:.3f}".format(accuracy1 / len(test_loader_1)))
+print(
+    "Test Loss (Covid/Non-covid): {:.3f} - ".format(test_loss2 / len(test_loader_2)),
+    "Test Accuracy (Covid/Non-covid): {:.3f}".format(accuracy2 / len(test_loader_2)))

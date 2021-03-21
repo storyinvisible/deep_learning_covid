@@ -7,11 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1bUJCf1hXobxSML5BdgDbGm7NFtgoPxPD
 """
 
-from google.colab import drive
-drive.mount('/content/gdrive/', force_remount=True)
-
-cd /content/gdrive/MyDrive/deep_learning_covid-main
-
 # Matplotlib
 import matplotlib.pyplot as plt
 # Numpy
